@@ -13,11 +13,13 @@ const environment = {};
 environment.development = {
   port: 3000,
   envName: 'development',
+  passwordHashSecret: 'lkajdflkjdaslkjfdsakjdslakj',
 };
 
 environment.production = {
   port: 8080,
   envName: 'production',
+  passwordHashSecret: 'lkajdflkjdaslkjfdsakjdslakj',
 };
 
 // Determine which environment was passed

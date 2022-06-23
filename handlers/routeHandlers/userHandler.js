@@ -86,7 +86,7 @@ handler._users.post = (reqProperties, callback) => {
     });
   } else {
     callback(400, {
-      error: 'You have a problem in your request!',
+      error: reqProperties?.body,
     });
   }
 };

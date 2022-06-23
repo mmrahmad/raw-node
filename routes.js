@@ -11,10 +11,14 @@ const {
 const {
   homeHandler,
 } = require('./handlers/routeHandlers/homeHandler');
+const {
+  userHandler,
+} = require('./handlers/routeHandlers/userHandler');
 // Routes
 const routes = {
   home: homeHandler,
   about: aboutHandler,
+  user: userHandler,
 };
 
 // Export
