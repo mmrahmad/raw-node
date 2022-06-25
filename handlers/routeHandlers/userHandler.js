@@ -8,6 +8,7 @@
 // Dependencies
 const { hash, parseJson } = require('../../helpers/utilities');
 const data = require('../../lib/data');
+const tokenHandler = require('./tokenHandler');
 
 // Module scaffolding
 const handler = {};
@@ -24,6 +25,11 @@ handler.userHandler = (reqProperties, callback) => {
 
 handler._users = {};
 
+/**
+ * GET method
+ * @param {Object} reqProperties
+ * @param {Function} callback
+ */
 handler._users.get = (reqProperties, callback) => {
   queryMobile = reqProperties.queryObject?.mobile;
   mobile =
@@ -32,14 +38,28 @@ handler._users.get = (reqProperties, callback) => {
       ? queryMobile
       : null;
   if (mobile) {
-    data.read('users', mobile, (err, user) => {
-      const userCopy = { ...parseJson(user) };
-      if (!err && userCopy) {
-        delete userCopy.password;
-        callback(200, userCopy);
+    // verify token
+    const token =
+      typeof reqProperties.headersObject.token === 'string'
+        ? reqProperties.headersObject.token
+        : false;
+
+    tokenHandler._token.verify(token, mobile, (validate) => {
+      if (validate) {
+        data.read('users', mobile, (err, user) => {
+          const userCopy = { ...parseJson(user) };
+          if (!err && userCopy) {
+            delete userCopy.password;
+            callback(200, userCopy);
+          } else {
+            callback(404, {
+              error: 'Requested user not found!',
+            });
+          }
+        });
       } else {
-        callback(404, {
-          error: 'Requested user not found!',
+        callback(403, {
+          error: 'User un-authenticated!',
         });
       }
     });
@@ -49,6 +69,12 @@ handler._users.get = (reqProperties, callback) => {
     });
   }
 };
+
+/**
+ * POST method
+ * @param {Object} reqProperties
+ * @param {Function} callback
+ */
 handler._users.post = (reqProperties, callback) => {
   // REQ body validation
   firstName =
@@ -122,6 +148,12 @@ handler._users.post = (reqProperties, callback) => {
     });
   }
 };
+
+/**
+ * PUT method
+ * @param {Object} reqProperties
+ * @param {Function} callback
+ */
 handler._users.put = (reqProperties, callback) => {
   // REQ body validation
   firstName =
@@ -149,46 +181,64 @@ handler._users.put = (reqProperties, callback) => {
     reqProperties.body.email.trim().length > 0
       ? reqProperties.body.email
       : null;
+  const token =
+    typeof reqProperties.headersObject.token === 'string'
+      ? reqProperties.headersObject.token
+      : false;
 
-  if (firstName || lastName || password || email) {
-    data.read('users', mobile, (err, userData) => {
-      const userCopy = { ...parseJson(userData) };
-      if (!err && userCopy) {
-        if ('firstName') {
-          userCopy.firstName = firstName;
-        }
-        if ('lastName') {
-          userCopy.lastName = lastName;
-        }
-        if ('email') {
-          userCopy.email = email;
-        }
-        if ('password') {
-          userCopy.password = hash(password);
-        }
-        data.update('users', mobile, userCopy, (err) => {
-          if (err) {
-            callback(500, {
-              error: 'There was an server side error!',
+  tokenHandler._token.verify(token, mobile, (validate) => {
+    if (validate) {
+      if (firstName || lastName || password || email) {
+        data.read('users', mobile, (err, userData) => {
+          const userCopy = { ...parseJson(userData) };
+          if (!err && userCopy) {
+            if ('firstName') {
+              userCopy.firstName = firstName;
+            }
+            if ('lastName') {
+              userCopy.lastName = lastName;
+            }
+            if ('email') {
+              userCopy.email = email;
+            }
+            if ('password') {
+              userCopy.password = hash(password);
+            }
+            data.update('users', mobile, userCopy, (err) => {
+              if (err) {
+                callback(500, {
+                  error: 'There was an server side error!',
+                });
+              } else {
+                callback(200, {
+                  message: 'User update successful!',
+                });
+              }
             });
           } else {
-            callback(200, {
-              message: 'User update successful!',
+            callback(500, {
+              error: 'User not exist!',
             });
           }
         });
       } else {
-        callback(500, {
-          error: 'User not exist!',
+        callback(400, {
+          error: 'There is an problem in your request!',
         });
       }
-    });
-  } else {
-    callback(400, {
-      error: 'There is an problem in your request!',
-    });
-  }
+    } else {
+      callback(403, {
+        error: 'User un-authenticated!',
+      });
+    }
+  });
 };
+
+/**
+ * DELETE method
+ * @param {Object} reqProperties
+ * @param {Function} callback
+ */
 handler._users.delete = (reqProperties, callback) => {
   queryMobile = reqProperties.queryObject?.mobile;
   mobile =
@@ -197,14 +247,27 @@ handler._users.delete = (reqProperties, callback) => {
       ? queryMobile
       : null;
   if (mobile) {
-    data.delete('users', mobile, (err) => {
-      if (!err) {
-        callback(200, {
-          message: 'User delete successful!',
+    const token =
+      typeof reqProperties.headersObject.token === 'string'
+        ? reqProperties.headersObject.token
+        : false;
+
+    tokenHandler._token.verify(token, mobile, (validate) => {
+      if (validate) {
+        data.delete('users', mobile, (err) => {
+          if (!err) {
+            callback(200, {
+              message: 'User delete successful!',
+            });
+          } else {
+            callback(404, {
+              error: 'Requested user not found!',
+            });
+          }
         });
       } else {
-        callback(404, {
-          error: 'Requested user not found!',
+        callback(403, {
+          error: 'User un-authenticated!',
         });
       }
     });
